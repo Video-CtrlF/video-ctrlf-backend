@@ -721,3 +721,4 @@ FodyWeavers.xsd
 
 secret.conf
 my_settings.py
+*.pkl
