@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import configparser
 import os
+
+import my_settings
+
 #check22
 parser = configparser.RawConfigParser()
 parser.read('secret.conf')
@@ -87,13 +90,14 @@ WSGI_APPLICATION = "CtrlF.wsgi.application"
 #     }
 # }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3')
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3')
+#     }
+# }
 
+DATABASES = my_settings.DATABASES
 
 
 # Password validation
