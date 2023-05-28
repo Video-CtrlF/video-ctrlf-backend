@@ -10,10 +10,10 @@ class YouTubeInfo(models.Model):
     title = models.CharField(help_text="YouTube Title", max_length=50)
     length = models.IntegerField(help_text="YouTube Length")
 
-
 class YouTubeCaption(models.Model):
     url_id = models.ForeignKey("YouTubeURL", on_delete=models.CASCADE)
-    time = models.DecimalField(max_digits=20, decimal_places=4, blank=True, null=True)
+    start_time = models.DecimalField(max_digits=20, decimal_places=4, blank=True, null=True)
+    end_time = models.DecimalField(max_digits=20, decimal_places=4, blank=True, null=True)
     text = models.TextField(blank=True, null=True)
 
 class OCRResult(models.Model):
@@ -25,5 +25,6 @@ class OCRResult(models.Model):
 
 class STTResult(models.Model):
     url_id = models.ForeignKey("YouTubeURL", on_delete=models.CASCADE)
-    time = models.DecimalField(max_digits=20, decimal_places=4, blank=True, null=True)
+    start_time = models.DecimalField(max_digits=20, decimal_places=4, blank=True, null=True)
+    end_time = models.DecimalField(max_digits=20, decimal_places=4, blank=True, null=True)
     text = models.TextField(blank=True, null=True)
