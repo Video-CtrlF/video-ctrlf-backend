@@ -1,0 +1,49 @@
+<!doctype html>
+{% load static %}
+<html>
+    <head>
+        <title>Django</title>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="{% static 'css/style.css' %}">
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+            $.ajaxSetup({
+              headers: { "X-CSRFToken": '{{csrf_token}}' }
+            });
+          </script>
+    </head>
+    <body>
+        {% include 'header.html' %}
+
+        {% block content %}
+        <input id='urlbox' type="text">
+        <button id="ajaxButton" type="button">URL 보내기</button>
+
+      <script>
+      function ajaxrequest(message) {
+          $.ajax({
+              type:"POST",
+              url:'success/',
+              data:{ areadata : message
+              },
+              success:function(args){
+                 console.log(args['js']);
+              },
+
+              error:function(e){
+                  console.log('오류')
+              }
+          });
+      }
+
+      $('#ajaxButton').on('click', function(e) {
+          let tagArea = document.getElementById('urlbox');
+          ajaxrequest(tagArea.value);
+      });
+
+      </script>
+        {% endblock %}
+
+        {% include 'footer.html' %}
+    </body>
+</html>
