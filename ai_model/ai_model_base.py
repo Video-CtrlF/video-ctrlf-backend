@@ -22,8 +22,6 @@ class AiModel:
         self.yt = YouTube(self.url)
         self.video_url = self.yt.streams.get_highest_resolution().url
         self.audio_url = self.yt.streams.filter(only_audio=True).first().url
-        self.easyocr_model = joblib.load("ai_model/models/easyocr_base_model.pkl")
-        self.whisper_model = joblib.load("ai_model/models/whisper_base_model.pkl")
         self.caption_df = pd.DataFrame(columns=["start", "end", "text"])
         self.easyocr_results = pd.DataFrame(columns=["bbox", "text", "conf", "time"])
         self.whisper_results = pd.DataFrame(columns=["start", "end", "text"])
@@ -61,6 +59,7 @@ class AiModel:
         easyocr을 통해 동영상에서 Text 추출
         return: pd.DataFrame
         """
+        easyocr_model = joblib.load("ai_model/models/easyocr_base_model.pkl")
         cap = cv2.VideoCapture(self.video_url)
         self.fps = cap.get(cv2.CAP_PROP_FPS)
         self.frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) # 프레임 개수
@@ -80,7 +79,7 @@ class AiModel:
             if frame_pos % (self.fps) != 0: # 1초에 한 장씩
                 continue
             # images.append(frame)
-            result = pd.DataFrame(self.easyocr_model.readtext(frame, detail=1), columns=['bbox', 'text', 'conf'])
+            result = pd.DataFrame(easyocr_model.readtext(frame, detail=1), columns=['bbox', 'text', 'conf'])
             result['time'] = frame_pos / self.fps 
             self.easyocr_results = pd.concat([self.easyocr_results, result], ignore_index=True)
             # if count // self.fps >= 5: # 5초까지
@@ -92,9 +91,10 @@ class AiModel:
         Whisper를 통해 동영상 오디오에서 Text 추출
         return: pd.DataFrame
         """
-        print('ok run')
+        print('whisper run')
+        whisper_model = joblib.load("ai_model/models/whisper_base_model.pkl")
         audio_all = whisper.load_audio(self.audio_url) # load audio
-        result = self.whisper_model.transcribe(audio_all)
+        result = whisper_model.transcribe(audio_all)
         for seg in result['segments']:
             start, end, text = seg['start'], seg['end'], seg['text']
             print(f"[ {start:>6.2f} ~ {end:>6.2f} ] {text}")
