@@ -18,7 +18,7 @@ def api(request):
         STTserializer = STTResultSerializer(models.STTResult.objects.filter(url_id=yt_url), many=True)
         OCRserializer = OCRResultSerializer(models.OCRResult.objects.filter(url_id=yt_url), many=True)
 
-        return Response(STTserializer.data + OCRserializer.data)
+        return Response({"STT" : STTserializer.data, "OCR" : OCRserializer.data})
     else: # DB에 없으면
         # YouTubeURL에 저장
         yt_url = models.YouTubeURL(url=url)
@@ -49,4 +49,4 @@ def api(request):
         #     data_model.save()
         # #########################
         YTCaption_serializer = YTCaptionSerializer(models.YouTubeCaption.objects.filter(url_id=yt_url), many=True)
-        return Response(YTCaption_serializer.data)
+        return Response({"caption" : YTCaption_serializer.data})
