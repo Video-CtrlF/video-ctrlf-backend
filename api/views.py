@@ -48,5 +48,5 @@ def api(request):
         #     data_model = models.STTResult(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
         #     data_model.save()
         # #########################
-        YTCaptionserializer = YTCaptionSerializer(models.YouTubeCaption.objects.filter(url_id=yt_url), many=True)
-        return Response(YTCaptionSerializer)
+        YTCaption_serializer = YTCaptionSerializer(models.YouTubeCaption.objects.filter(url_id=yt_url), many=True)
+        return Response(YTCaption_serializer.data)
