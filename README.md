@@ -1,6 +1,7 @@
 # CTRL-F 서비스의 Back-End 부분 입니다.
 
 # 환경세팅
+python version : `3.10.11`  
 `pip install -r requirements.txt`
 
 ## ai_model app
