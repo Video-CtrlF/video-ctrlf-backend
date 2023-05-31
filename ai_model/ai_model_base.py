@@ -59,6 +59,7 @@ class AiModel:
         easyocr을 통해 동영상에서 Text 추출
         return: pd.DataFrame
         """
+        print("EasyOCR Start!!")
         easyocr_model = joblib.load("ai_model/models/easyocr_base_model.pkl")
         cap = cv2.VideoCapture(self.video_url)
         self.fps = cap.get(cv2.CAP_PROP_FPS)
@@ -84,6 +85,7 @@ class AiModel:
             self.easyocr_results = pd.concat([self.easyocr_results, result], ignore_index=True)
             # if count // self.fps >= 5: # 5초까지
             #     break
+        print("EasyOCR Done!!")
         return self.easyocr_results
 
     def get_whisper_result(self):
@@ -91,15 +93,16 @@ class AiModel:
         Whisper를 통해 동영상 오디오에서 Text 추출
         return: pd.DataFrame
         """
-        print('whisper run')
+        print('Whisper Start!!')
         whisper_model = joblib.load("ai_model/models/whisper_base_model.pkl")
         audio_all = whisper.load_audio(self.audio_url) # load audio
         result = whisper_model.transcribe(audio_all)
         for seg in result['segments']:
             start, end, text = seg['start'], seg['end'], seg['text']
-            print(f"[ {start:>6.2f} ~ {end:>6.2f} ] {text}")
+            # print(f"[ {start:>6.2f} ~ {end:>6.2f} ] {text}")
             temp = pd.DataFrame([[start, end, text]], columns=["start", "end", "text"])
             self.whisper_results = pd.concat([self.whisper_results, temp], ignore_index=True)
+        print('Whisper Done!!')
         return self.whisper_results
     
 if __name__ == "__main__":

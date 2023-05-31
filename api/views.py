@@ -36,17 +36,17 @@ def api(request):
             data_model.save()
         
         # ########################
-        # # OCRResult에 저장
-        # ocr_result = ai_obj.get_easyocr_result()
-        # for _, row in ocr_result.iterrows():
-        #     data_model = models.OCRResult(url_id=yt_url, time=row['time'], text=row['text'], conf=row['conf'])
-        #     data_model.save()
+        # OCRResult에 저장
+        ocr_result = ai_obj.get_easyocr_result()
+        for _, row in ocr_result.iterrows():
+            data_model = models.OCRResult(url_id=yt_url, time=row['time'], text=row['text'], conf=row['conf'])
+            data_model.save()
 
-        # # STTResult에 저장
-        # stt_result = ai_obj.get_whisper_result()
-        # for _, row in stt_result.iterrows():
-        #     data_model = models.STTResult(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
-        #     data_model.save()
+        # STTResult에 저장
+        stt_result = ai_obj.get_whisper_result()
+        for _, row in stt_result.iterrows():
+            data_model = models.STTResult(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
+            data_model.save()
         # #########################
         YTCaption_serializer = YTCaptionSerializer(models.YouTubeCaption.objects.filter(url_id=yt_url), many=True)
         return Response({"caption" : YTCaption_serializer.data})
