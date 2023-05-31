@@ -1,9 +1,9 @@
 # CTRL-F 서비스의 Back-End 부분 입니다.
 
 # 환경세팅
-python version : `3.10.11`  
-t2 micro의 경우 사양문제로 `--no-cache-dir` 옵션을 줘야함  
-`pip install -r requirements.txt --no-cache-dir`
+- python version : `3.10.11`  
+- t2 micro의 경우 사양문제로 `--no-cache-dir` 옵션을 줘야함  
+  - `pip install -r requirements.txt --no-cache-dir`
 
 
 ## ai_model app
