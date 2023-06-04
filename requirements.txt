@@ -8,3 +8,4 @@ joblib==1.2.0
 pandas==2.0.1
 mysqlclient
 pymysql
+cryptography
