@@ -8,6 +8,9 @@ from rest_framework.decorators import api_view
 
 from .serializers import *
 
+import time
+import threading
+
 # Create your views here.
 
 @api_view(['POST'])
@@ -19,7 +22,7 @@ def api(request):
         # OCRserializer = OCRResultSerializer(models.OCRResult.objects.filter(url_id=yt_url), many=True)
         # return Response({"STT" : STTserializer.data, "OCR" : OCRserializer.data})
         YTCaption_serializer = YTCaptionSerializer(models.YouTubeCaption.objects.filter(url_id=yt_url), many=True)
-        return Response({"caption" : YTCaption_serializer.data})
+        return JsonResponse({"caption" : YTCaption_serializer.data})
     else: # DB에 없으면
         # YouTubeURL에 저장
         yt_url = models.YouTubeURL(url=url)
@@ -36,18 +39,32 @@ def api(request):
             data_model = models.YouTubeCaption(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
             data_model.save()
         
-        # ########################
-        # OCRResult에 저장
-        # ocr_result = ai_obj.get_easyocr_result()
-        # for _, row in ocr_result.iterrows():
-        #     data_model = models.OCRResult(url_id=yt_url, time=row['time'], text=row['text'], conf=row['conf'])
-        #     data_model.save()
+        t = threading.Thread(target=inference, args=(yt_url, ai_obj))
+        t.daemon = True
+        t.start()
 
-        # STTResult에 저장
-        # stt_result = ai_obj.get_whisper_result()
-        # for _, row in stt_result.iterrows():
-        #     data_model = models.STTResult(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
-        #     data_model.save()
-        # #########################
         YTCaption_serializer = YTCaptionSerializer(models.YouTubeCaption.objects.filter(url_id=yt_url), many=True)
-        return Response({"caption" : YTCaption_serializer.data})
+        return JsonResponse({"caption" : YTCaption_serializer.data})
+
+def inference(yt_url, ai_obj):
+    """
+    args:
+        yt_url : YouTubeURL Table Object
+        ai_obj : AiModel Class Object
+    """
+
+    # # OCRResult에 저장
+    # ocr_result = ai_obj.get_easyocr_result()
+    # for _, row in ocr_result.iterrows():
+    #     data_model = models.OCRResult(url_id=yt_url, time=row['time'], text=row['text'], conf=row['conf'])
+    #     data_model.save()
+
+    # # STTResult에 저장
+    # stt_result = ai_obj.get_whisper_result()
+    # for _, row in stt_result.iterrows():
+    #     data_model = models.STTResult(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
+    #     data_model.save()
+
+    for i in range(60):
+        print(f"test --- {i}")
+        time.sleep(1)
