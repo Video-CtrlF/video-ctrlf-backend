@@ -4,7 +4,7 @@ from ai_model import models
 class YTUrlSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.YouTubeURL
-        fields = ('id', 'url')
+        fields = ('id', 'url', 'status')
 
 class YTInfoSerializer(serializers.ModelSerializer):
     class Meta:

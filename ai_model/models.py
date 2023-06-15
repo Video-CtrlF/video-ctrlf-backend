@@ -3,6 +3,7 @@ from django.db import models
 class YouTubeURL(models.Model):
     id = models.BigAutoField(help_text="YouTube url ID", primary_key=True)
     url = models.URLField(help_text="YouTube url", max_length=200, blank=False, null=False)
+    status = models.CharField(help_text="Status", max_length=10, default="wait")
     def __str__(self):
         return str(self.id)
 
