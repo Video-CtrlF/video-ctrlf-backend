@@ -108,9 +108,9 @@ class AiModel:
 if __name__ == "__main__":
     url = 'https://www.youtube.com/watch?v=bGcVkNP1tPs&t=2s&ab_channel=1%EB%B6%84%EB%AF%B8%EB%A7%8C'
     models = AiModel(url=url)
-    caption = models.get_captions()
-    caption.to_csv("caption.csv")
-    easyocr_result = models.get_easyocr_result()
-    easyocr_result.to_csv("easyocr_result.csv")
+    # caption = models.get_captions()
+    # caption.to_csv("caption.csv")
+    # easyocr_result = models.get_easyocr_result()
+    # easyocr_result.to_csv("easyocr_result.csv")
     whisper_result = models.get_whisper_result()
     whisper_result.to_csv("whisper_result.csv")
