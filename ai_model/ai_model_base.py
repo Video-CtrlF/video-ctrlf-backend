@@ -57,6 +57,8 @@ class AiModel:
     def get_easyocr_result(self):
         """
         easyocr을 통해 동영상에서 Text 추출
+        Cap.read()와 EasyOCR을 같이 쓰면 프레임을 끝까지 못읽어와서
+        프레임을 다 뽑아오고 EasyOCR 진행
         return: pd.DataFrame
         """
         print("EasyOCR Start!!")
@@ -66,8 +68,7 @@ class AiModel:
         self.frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) # 프레임 개수
         print("fps :", self.fps)
         print("frame_count :", self.frame_count)
-        # images = []
-        # while True:
+        frames = []
         for _ in tqdm(range(int(self.frame_count))):
             frame_pos = cap.get(cv2.CAP_PROP_POS_FRAMES) # 현재 프레임
             success, frame = cap.read()
@@ -77,14 +78,19 @@ class AiModel:
                 print('not success time :', frame_pos / self.fps)
                 print('not success ... break')
                 break
+
             if frame_pos % (self.fps) != 0: # 1초에 한 장씩
                 continue
-            # images.append(frame)
+
+            frames.append(frame)
+
+        cap.release()
+
+        for frame in tqdm(frames):
             result = pd.DataFrame(easyocr_model.readtext(frame, detail=1), columns=['bbox', 'text', 'conf'])
             result['time'] = frame_pos / self.fps 
             self.easyocr_results = pd.concat([self.easyocr_results, result], ignore_index=True)
-            # if count // self.fps >= 5: # 5초까지
-            #     break
+
         print("EasyOCR Done!!")
         return self.easyocr_results
 
