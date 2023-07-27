@@ -23,11 +23,25 @@ class AiModel:
         self.video_url = self.yt.streams.get_highest_resolution().url
         self.audio_url = self.yt.streams.filter(only_audio=True).first().url
         self.caption_df = pd.DataFrame(columns=["start", "end", "text"])
-        self.easyocr_results = pd.DataFrame(columns=["bbox", "text", "conf", "time"])
+        self.easyocr_results = pd.DataFrame(columns=["bbox", "text", "conf", "time", "size"]) # bbox = (tl, tr, br, bl)
         self.whisper_results = pd.DataFrame(columns=["start", "end", "text"])
-        self.fps = None
-        self.frame_count = None
 
+        self.height = None
+        self.width = None
+
+        cap = cv2.VideoCapture(self.video_url)
+        self.fps = cap.get(cv2.CAP_PROP_FPS)
+        self.frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) # 프레임 개수
+        print("fps :", self.fps)
+        print("frame_count :", self.frame_count)
+
+        success, frame = cap.read()
+        if not success:
+            print("cannot get video")
+            self.height = None
+            self.width = None
+        cap.release()
+        self.height, self.width = frame.shape[:2]
 
     def get_captions(self):
         """
@@ -64,10 +78,6 @@ class AiModel:
         print("EasyOCR Start!!")
         easyocr_model = joblib.load("ai_model/models/easyocr_base_model.pkl")
         cap = cv2.VideoCapture(self.video_url)
-        self.fps = cap.get(cv2.CAP_PROP_FPS)
-        self.frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) # 프레임 개수
-        print("fps :", self.fps)
-        print("frame_count :", self.frame_count)
         frames = []
         for _ in tqdm(range(int(self.frame_count))):
             frame_pos = cap.get(cv2.CAP_PROP_POS_FRAMES) # 현재 프레임
@@ -86,8 +96,15 @@ class AiModel:
 
         cap.release()
 
-        for frame in tqdm(frames):
-            result = pd.DataFrame(easyocr_model.readtext(frame, detail=1), columns=['bbox', 'text', 'conf'])
+        for frame in tqdm(frames[:5]):
+            temp = easyocr_model.readtext(frame, detail=1)
+            # 상대 좌표로 변경
+            for i in temp:
+                for j in i[0]:
+                    j[0] /= self.width
+                    j[1] /= self.height
+            # result = pd.DataFrame(easyocr_model.readtext(frame, detail=1), columns=['bbox', 'text', 'conf'])
+            result = pd.DataFrame(temp, columns=['bbox', 'text', 'conf'])
             result['time'] = frame_pos / self.fps 
             self.easyocr_results = pd.concat([self.easyocr_results, result], ignore_index=True)
 

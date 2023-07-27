@@ -86,7 +86,13 @@ def ai_result(request):
 
             STTserializer = STTResultSerializer(models.STTResult.objects.filter(url_id=yt_url), many=True)
             OCRserializer = OCRResultSerializer(models.OCRResult.objects.filter(url_id=yt_url), many=True)
-            return Response({"STT" : STTserializer.data, "OCR" : OCRserializer.data})
+            return Response({
+                "info" : YTInfoSerializer(models.YouTubeInfo.objects.get(url_id=yt_url)).data,
+                "scripts" : {
+                    "STT" : STTserializer.data, 
+                    "OCR" : OCRserializer.data
+                }
+            })
         except Exception as e:
             return JsonResponse({"Error" : e})
     if request.method == 'DELETE':
@@ -101,8 +107,6 @@ def ai_result(request):
         except Exception as e:
             return JsonResponse({"Error" : e})
 
-
-
 def youtubeDefault(url):
     """
     args:
@@ -116,14 +120,18 @@ def youtubeDefault(url):
     ai_obj = AiModel(url)
 
     # YouTubeInfo에 저장
-    models.YouTubeInfo(url_id=yt_url, title=ai_obj.yt.title, length=ai_obj.yt.length).save()
+    video_size = {
+            "height": ai_obj.height,
+            "width": ai_obj.width
+        }
+    models.YouTubeInfo(url_id=yt_url, title=ai_obj.yt.title, length=ai_obj.yt.length, video_size=video_size).save()
 
     # YouTubeCaption에 저장
     yt_caption = ai_obj.get_captions()
     for _, row in yt_caption.iterrows():
         data_model = models.YouTubeCaption(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
         data_model.save()
-        
+
 def inference(yt_url, ai_obj):
     """
     args:
@@ -133,14 +141,19 @@ def inference(yt_url, ai_obj):
     # OCRResult에 저장
     try:
         # STTResult에 저장
-        stt_result = ai_obj.get_whisper_result()
-        for _, row in stt_result.iterrows():
-            data_model = models.STTResult(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
-            data_model.save()
+        # stt_result = ai_obj.get_whisper_result()
+        # for _, row in stt_result.iterrows():
+        #     data_model = models.STTResult(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
+        #     data_model.save()
 
         ocr_result = ai_obj.get_easyocr_result()
+        bbox = ("tl", "tr", "br", "bl")
         for _, row in ocr_result.iterrows():
             data_model = models.OCRResult(url_id=yt_url, time=row['time'], text=row['text'], conf=row['conf'])
+            coordinates = {}
+            for i, (x, y) in enumerate(row['bbox']):
+                coordinates[bbox[i]] = (x, y)
+            data_model.bbox = coordinates
             data_model.save()
 
         yt_url.status = "success"

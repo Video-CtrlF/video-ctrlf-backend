@@ -9,7 +9,7 @@ class YTUrlSerializer(serializers.ModelSerializer):
 class YTInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.YouTubeInfo
-        fields = ('url_id', 'title', 'length')
+        fields = ('url_id', 'title', 'length', 'video_size')
 
 class YTCaptionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,9 +19,9 @@ class YTCaptionSerializer(serializers.ModelSerializer):
 class OCRResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.OCRResult
-        fields = ('url_id', 'time', 'text', 'conf')
+        fields = ('time', 'text', 'conf', 'bbox')
 
 class STTResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.STTResult
-        fields = ('url_id', 'start_time', 'end_time', 'text')
+        fields = ('start_time', 'end_time', 'text')

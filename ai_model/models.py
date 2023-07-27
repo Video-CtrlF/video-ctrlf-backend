@@ -11,6 +11,7 @@ class YouTubeInfo(models.Model):
     url_id = models.ForeignKey("YouTubeURL", on_delete=models.CASCADE, db_column='url_id')
     title = models.CharField(help_text="YouTube Title", max_length=50)
     length = models.BigIntegerField(help_text="YouTube Length")
+    video_size = models.JSONField()
     def __str__(self):
         return str(self.url_id) + " : " + self.title
 
@@ -27,8 +28,7 @@ class OCRResult(models.Model):
     time = models.BigIntegerField(blank=True, null=True)
     text = models.TextField(blank=True, null=True)
     conf = models.DecimalField(max_digits=7, decimal_places=6, blank=True, null=True)
-    # bbox = models.TextField(blank=True, null=True)
-    # size = models.TextField(blank=True, null=True)
+    bbox = models.JSONField(blank=True, null=True)
     def __str__(self):
         return f"{str(self.url_id)} : [{self.time:.2f}] {self.text} ({self.conf:.4f})"
 
