@@ -35,7 +35,11 @@ def get_caption(request):
                 youtubeDefault(url=url)
             yt_url = models.YouTubeURL.objects.get(url=url)
             YTCaption_serializer = YTCaptionSerializer(models.YouTubeCaption.objects.filter(url_id=yt_url), many=True)
-            return JsonResponse({"caption" : YTCaption_serializer.data})
+            # return JsonResponse({"caption" : YTCaption_serializer.data})
+            return Response({
+                    "info" : YTInfoSerializer(models.YouTubeInfo.objects.get(url_id=yt_url)).data,
+                    "caption" : YTCaption_serializer.data
+                })
         except Exception as e:
             return JsonResponse({"Error" : e})
     
