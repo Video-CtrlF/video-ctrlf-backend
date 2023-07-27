@@ -79,6 +79,7 @@ class AiModel:
         easyocr_model = joblib.load("ai_model/models/easyocr_base_model.pkl")
         cap = cv2.VideoCapture(self.video_url)
         frames = []
+        times = []
         for _ in tqdm(range(int(self.frame_count))):
             frame_pos = cap.get(cv2.CAP_PROP_POS_FRAMES) # 현재 프레임
             success, frame = cap.read()
@@ -93,10 +94,11 @@ class AiModel:
                 continue
 
             frames.append(frame)
+            times.append(frame_pos / self.fps) # 시간 정보
 
         cap.release()
 
-        for frame in tqdm(frames):
+        for frame, time in zip(tqdm(frames), times):
             temp = easyocr_model.readtext(frame, detail=1)
             # 상대 좌표로 변경
             for i in temp:
@@ -105,7 +107,7 @@ class AiModel:
                     j[1] /= self.height
             # result = pd.DataFrame(easyocr_model.readtext(frame, detail=1), columns=['bbox', 'text', 'conf'])
             result = pd.DataFrame(temp, columns=['bbox', 'text', 'conf'])
-            result['time'] = frame_pos / self.fps 
+            result['time'] = time
             self.easyocr_results = pd.concat([self.easyocr_results, result], ignore_index=True)
 
         print("EasyOCR Done!!")
