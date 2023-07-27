@@ -1,11 +1,17 @@
 from easyocr import Reader
 from pytube import YouTube
+from krwordrank.word import KRWordRank
+from krwordrank.word import summarize_with_keywords
+from hanspell import spell_checker
+
 
 import time
 import pandas as pd
 import cv2
 import whisper
 import joblib
+from konlpy.tag import Okt
+import re, os
 
 from tqdm import tqdm
 import warnings
@@ -76,7 +82,7 @@ class AiModel:
         return: pd.DataFrame
         """
         print("EasyOCR Start!!")
-        easyocr_model = joblib.load("ai_model/models/easyocr_base_model.pkl")
+        easyocr_model = joblib.load("models/easyocr_base_model.pkl")
         cap = cv2.VideoCapture(self.video_url)
         frames = []
         times = []
@@ -110,8 +116,13 @@ class AiModel:
             result['time'] = time
             self.easyocr_results = pd.concat([self.easyocr_results, result], ignore_index=True)
 
+        #text 추출
+        text = self.easyocr_results['text']
+        text_list = list(map(str, text))
+        keywords = self.texts2keyword(text_list)
+        print(keywords)    
         print("EasyOCR Done!!")
-        return self.easyocr_results
+        return self.easyocr_results, keywords
 
     def get_whisper_result(self):
         """
@@ -119,7 +130,7 @@ class AiModel:
         return: pd.DataFrame
         """
         print('Whisper Start!!')
-        whisper_model = joblib.load("ai_model/models/whisper_base_model.pkl")
+        whisper_model = joblib.load("models/whisper_base_model.pkl")
         audio_all = whisper.load_audio(self.audio_url) # load audio
         result = whisper_model.transcribe(audio_all)
         for seg in result['segments']:
@@ -127,15 +138,88 @@ class AiModel:
             # print(f"[ {start:>6.2f} ~ {end:>6.2f} ] {text}")
             temp = pd.DataFrame([[start, end, text]], columns=["start", "end", "text"])
             self.whisper_results = pd.concat([self.whisper_results, temp], ignore_index=True)
+
+        #text 추출
+        text = self.whisper_results['text']
+        text_list = list(map(str, text))
+        keywords = self.texts2keyword(text_list)
+        print(keywords)
         print('Whisper Done!!')
-        return self.whisper_results
+        return self.whisper_results, keywords
+
+    def texts2keyword(self, texts):
+        from keybert import KeyBERT
+        from kiwipiepy import Kiwi
+        from transformers import BertModel
+
+        model = BertModel.from_pretrained('skt/kobert-base-v1')
+        kw_model = KeyBERT(model)
+
+        kiwi = Kiwi()
+        nouns_list = []
+        for sentences in texts:
+            # 맞춤법 검사
+            spell_sentence = spell_checker.check(sentences)
+            checked_sentence = spell_sentence.checked
+            
+            #영어, 한글, 숫자 외 모든 문자 제거
+            sentences = re.sub('[^가-힣a-z1-9]', ' ', checked_sentence)
+
+            for sentence in kiwi.analyze(sentences):
+                nouns = [token.form for token in sentence[0] if token.tag.startswith('NN')]
+                if nouns:
+                    nouns_list.extend(nouns)
+            result_text = ' '.join(nouns_list)
+
+        #불용어 처리
+        stop_words = ['말씀','지금','오늘','번째']
+        keywords = kw_model.extract_keywords(result_text, keyphrase_ngram_range=(1, 1), stop_words=stop_words, top_n=10)
+        keywords = [item[0] for item in keywords]
+        return keywords[:5]
     
+    # def texts2keyword2(self, texts):
+    #     os.environ['JAVA_HOME'] = r'C:\Program Files\Java\jdk-17' 
+    #     text_str = list(map(str, texts))
+        
+    #     okt = Okt()
+    #     result = []
+    #     for sentence in text_str:
+    #         #맞춤법 확인
+    #         print(sentence)
+    #         spell_sentence = spell_checker.check(sentence)
+    #         checked_sentence = spell_sentence.checked
+            
+    #         #영어, 한글,숫자 외 모든 문자 제거
+    #         sentence = re.sub('[^가-힣a-z1-9]', ' ', checked_sentence)
+
+    #         print(sentence)
+    #         if len(sentence) == 0:
+    #             continue
+    #         sentence_pos = okt.pos(sentence, norm= True, stem=True)
+    #         nouns = [word for word, pos in sentence_pos if pos == 'Noun']
+    #         if len(nouns) == 1:
+    #             continue
+    #         result.append(' '.join(nouns))
+    #     #print(result)
+    #     min_count = 2   # 단어의 최소 출현 빈도수 (그래프 생성 시)
+    #     max_length = 10 # 단어의 최대 길이
+    #     #wordrank_extractor = KRWordRank(min_count=min_count, max_length=max_length)
+    #     beta = 0.85    # PageRank의 decaying factor beta
+    #     max_iter=15
+        
+    #     keywords_result = []
+    #     keywords = summarize_with_keywords(result, min_count=min_count, max_length=max_length, beta=beta, max_iter=max_iter, verbose=True)
+    #     for word, r in sorted(keywords.items(), key=lambda x:x[1], reverse=True):
+    #             keywords_result.append(word)
+    #     return keywords_result
+
+
 if __name__ == "__main__":
     url = 'https://www.youtube.com/watch?v=bGcVkNP1tPs&t=2s&ab_channel=1%EB%B6%84%EB%AF%B8%EB%A7%8C'
     models = AiModel(url=url)
     # caption = models.get_captions()
     # caption.to_csv("caption.csv")
-    # easyocr_result = models.get_easyocr_result()
+    #easyocr_result = models.get_easyocr_result()
     # easyocr_result.to_csv("easyocr_result.csv")
     whisper_result = models.get_whisper_result()
-    whisper_result.to_csv("whisper_result.csv")
+    #whisper_result.to_csv("whisper_result.csv")
