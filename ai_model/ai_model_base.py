@@ -52,7 +52,7 @@ class AiModel:
     def get_captions(self):
         """
         YouTube에서 제공하는 자막 정보 받기
-        return: pd.DataFrame
+        return: pd.DataFrame, list(keywords)
         """
         # 첫 번째 자막 선택
         caption = self.yt.captions.all()[0]
@@ -73,13 +73,21 @@ class AiModel:
                 text = ' '.join(text)
                 temp = pd.DataFrame([[start, end, text]], columns=["start", "end", "text"])
                 self.caption_df = pd.concat([self.caption_df, temp], ignore_index=True)
-        return self.caption_df
+        
+        #text 추출
+        text = self.caption_df['text']
+        text_list = list(map(str, text))
+        keywords = self.texts2keyword(text_list)
+        print(keywords)
+
+        return self.caption_df, keywords
+    
     def get_easyocr_result(self):
         """
         easyocr을 통해 동영상에서 Text 추출
         Cap.read()와 EasyOCR을 같이 쓰면 프레임을 끝까지 못읽어와서
         프레임을 다 뽑아오고 EasyOCR 진행
-        return: pd.DataFrame
+        return: pd.DataFrame, list(keywords)
         """
         print("EasyOCR Start!!")
         easyocr_model = joblib.load("ai_model/models/easyocr_base_model.pkl")
@@ -127,7 +135,7 @@ class AiModel:
     def get_whisper_result(self):
         """
         Whisper를 통해 동영상 오디오에서 Text 추출
-        return: pd.DataFrame
+        return: pd.DataFrame, list(keywords)
         """
         print('Whisper Start!!')
         whisper_model = joblib.load("ai_model/models/whisper_base_model.pkl")

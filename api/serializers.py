@@ -25,3 +25,19 @@ class STTResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.STTResult
         fields = ('start_time', 'end_time', 'text')
+
+class CaptionKeywordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.CaptionKeyword
+        fields = ('keywords', )
+
+class OCRKeywordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.OCRKeyword
+        fields = ('keywords', )
+
+class STTKeywordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.STTKeyword
+        fields = ('keywords', )
+

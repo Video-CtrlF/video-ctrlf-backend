@@ -39,3 +39,15 @@ class STTResult(models.Model):
     text = models.TextField(blank=True, null=True)
     def __str__(self):
         return f"{str(self.url_id)} : [{self.start_time:6.2f} ~ {self.end_time:6.2f}] {self.text}"
+
+class CaptionKeyword(models.Model):
+    url_id = models.ForeignKey("YouTubeURL", on_delete=models.CASCADE, db_column='url_id')
+    keywords = models.JSONField()
+
+class OCRKeyword(models.Model):
+    url_id = models.ForeignKey("YouTubeURL", on_delete=models.CASCADE, db_column='url_id')
+    keywords = models.JSONField()
+
+class STTKeyword(models.Model):
+    url_id = models.ForeignKey("YouTubeURL", on_delete=models.CASCADE, db_column='url_id')
+    keywords = models.JSONField()

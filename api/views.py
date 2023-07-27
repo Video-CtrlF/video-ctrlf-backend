@@ -34,6 +34,7 @@ def get_caption(request):
             YTCaption_serializer = YTCaptionSerializer(models.YouTubeCaption.objects.filter(url_id=yt_url), many=True)
             return Response({
                     "info" : YTInfoSerializer(models.YouTubeInfo.objects.get(url_id=yt_url)).data,
+                    "keywords" : CaptionKeywordSerializer(models.CaptionKeyword.objects.get(url_id=yt_url)).data['keywords']['topN'],
                     "caption" : YTCaption_serializer.data
                 })
         except Exception as e:
@@ -88,6 +89,8 @@ def ai_result(request):
             OCRserializer = OCRResultSerializer(models.OCRResult.objects.filter(url_id=yt_url), many=True)
             return Response({
                 "info" : YTInfoSerializer(models.YouTubeInfo.objects.get(url_id=yt_url)).data,
+                "STTkeywords" : STTKeywordSerializer(models.STTKeyword.objects.get(url_id=yt_url)).data['keywords']['topN'],
+                "OCRkeywords" : OCRKeywordSerializer(models.OCRKeyword.objects.get(url_id=yt_url)).data['keywords']['topN'],
                 "scripts" : {
                     "STT" : STTserializer.data, 
                     "OCR" : OCRserializer.data
@@ -127,7 +130,9 @@ def youtubeDefault(url):
     models.YouTubeInfo(url_id=yt_url, title=ai_obj.yt.title, length=ai_obj.yt.length, video_size=video_size).save()
 
     # YouTubeCaption에 저장
-    yt_caption = ai_obj.get_captions()
+    yt_caption, keywords = ai_obj.get_captions()
+    models.CaptionKeyword(url_id=yt_url, keywords={"topN" : keywords}).save()
+
     for _, row in yt_caption.iterrows():
         data_model = models.YouTubeCaption(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
         data_model.save()
@@ -146,7 +151,8 @@ def inference(yt_url, ai_obj):
             data_model = models.STTResult(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
             data_model.save()
         
-        print("stt_keywords : ", stt_keywords)
+        # 핵심 Keyword 저장
+        models.STTKeyword(url_id=yt_url, keywords={"topN" : stt_keywords}).save()
 
         ocr_result, ocr_keywords = ai_obj.get_easyocr_result()
         bbox = ("tl", "tr", "br", "bl")
@@ -157,6 +163,9 @@ def inference(yt_url, ai_obj):
                 coordinates[bbox[i]] = (x, y)
             data_model.bbox = coordinates
             data_model.save()
+
+        # 핵심 Keyword 저장
+        models.OCRKeyword(url_id=yt_url, keywords={"topN" : ocr_keywords}).save()
 
         yt_url.status = "success"
         yt_url.save()
