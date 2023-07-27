@@ -1,7 +1,7 @@
 from easyocr import Reader
 from pytube import YouTube
-from krwordrank.word import KRWordRank
-from krwordrank.word import summarize_with_keywords
+# from krwordrank.word import KRWordRank
+# from krwordrank.word import summarize_with_keywords
 from hanspell import spell_checker
 
 
@@ -10,7 +10,7 @@ import pandas as pd
 import cv2
 import whisper
 import joblib
-from konlpy.tag import Okt
+# from konlpy.tag import Okt
 import re, os
 
 from tqdm import tqdm
@@ -82,7 +82,7 @@ class AiModel:
         return: pd.DataFrame
         """
         print("EasyOCR Start!!")
-        easyocr_model = joblib.load("models/easyocr_base_model.pkl")
+        easyocr_model = joblib.load("ai_model/models/easyocr_base_model.pkl")
         cap = cv2.VideoCapture(self.video_url)
         frames = []
         times = []
@@ -130,7 +130,7 @@ class AiModel:
         return: pd.DataFrame
         """
         print('Whisper Start!!')
-        whisper_model = joblib.load("models/whisper_base_model.pkl")
+        whisper_model = joblib.load("ai_model/models/whisper_base_model.pkl")
         audio_all = whisper.load_audio(self.audio_url) # load audio
         result = whisper_model.transcribe(audio_all)
         for seg in result['segments']:
@@ -172,10 +172,11 @@ class AiModel:
             result_text = ' '.join(nouns_list)
 
         #불용어 처리
-        stop_words = ['말씀','지금','오늘','번째']
-        keywords = kw_model.extract_keywords(result_text, keyphrase_ngram_range=(1, 1), stop_words=stop_words, top_n=10)
+        # stop_words = ['말씀','지금','오늘','번째']
+        # keywords = kw_model.extract_keywords(result_text, keyphrase_ngram_range=(1, 1), stop_words=stop_words, top_n=20)
+        keywords = kw_model.extract_keywords(result_text, keyphrase_ngram_range=(1, 1), stop_words=None, top_n=20)
         keywords = [item[0] for item in keywords]
-        return keywords[:5]
+        return keywords
     
     # def texts2keyword2(self, texts):
     #     os.environ['JAVA_HOME'] = r'C:\Program Files\Java\jdk-17' 

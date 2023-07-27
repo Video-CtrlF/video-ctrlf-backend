@@ -141,12 +141,14 @@ def inference(yt_url, ai_obj):
     # OCRResult에 저장
     try:
         # STTResult에 저장
-        stt_result = ai_obj.get_whisper_result()
+        stt_result, stt_keywords = ai_obj.get_whisper_result()
         for _, row in stt_result.iterrows():
             data_model = models.STTResult(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
             data_model.save()
+        
+        print("stt_keywords : ", stt_keywords)
 
-        ocr_result = ai_obj.get_easyocr_result()
+        ocr_result, ocr_keywords = ai_obj.get_easyocr_result()
         bbox = ("tl", "tr", "br", "bl")
         for _, row in ocr_result.iterrows():
             data_model = models.OCRResult(url_id=yt_url, time=row['time'], text=row['text'], conf=row['conf'])
