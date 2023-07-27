@@ -96,7 +96,7 @@ class AiModel:
 
         cap.release()
 
-        for frame in tqdm(frames[:5]):
+        for frame in tqdm(frames):
             temp = easyocr_model.readtext(frame, detail=1)
             # 상대 좌표로 변경
             for i in temp:
