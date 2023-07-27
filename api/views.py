@@ -1,5 +1,3 @@
-from django.shortcuts import render
-from django.http import JsonResponse
 from ai_model import models
 from ai_model.ai_model_base import AiModel
 
@@ -8,7 +6,6 @@ from rest_framework.decorators import api_view
 
 from .serializers import *
 
-import time
 import threading
 
 # Create your views here.
@@ -20,8 +17,8 @@ def url_check(request):
     if request.method == 'POST':
         url = request.data.get('url')
         if models.YouTubeURL.objects.filter(url=url).exists(): # DB에 해당 URL이 존재하는지 확인
-            return JsonResponse({"isExist" : True})
-        return JsonResponse({"isExist" : False})
+            return Response({"isExist" : True})
+        return Response({"isExist" : False})
 
 # api/caption/
 @api_view(['POST'])
@@ -35,13 +32,12 @@ def get_caption(request):
                 youtubeDefault(url=url)
             yt_url = models.YouTubeURL.objects.get(url=url)
             YTCaption_serializer = YTCaptionSerializer(models.YouTubeCaption.objects.filter(url_id=yt_url), many=True)
-            # return JsonResponse({"caption" : YTCaption_serializer.data})
             return Response({
                     "info" : YTInfoSerializer(models.YouTubeInfo.objects.get(url_id=yt_url)).data,
                     "caption" : YTCaption_serializer.data
                 })
         except Exception as e:
-            return JsonResponse({"Error" : e})
+            return Response({"Error" : e})
     
 # api/ai/
 @api_view(['POST'])
@@ -62,10 +58,10 @@ def ai_inference(request):
             yt_url.status = "process"
             yt_url.save()
         
-            return JsonResponse({"status" : yt_url.status}) # db에서 가져오는 값은 아님. 사실상 "process"가 전달되는 것
+            return Response({"status" : yt_url.status}) # db에서 가져오는 값은 아님. 사실상 "process"가 전달되는 것
             
         except Exception as e:
-            return JsonResponse({"Error" : e})
+            return Response({"Error" : e})
 
 # api/status/
 @api_view(['POST'])
@@ -75,9 +71,9 @@ def get_status(request):
         url = request.data.get('url')
         if models.YouTubeURL.objects.filter(url=url).exists(): # DB에 해당 URL이 존재하면
             yt_url = models.YouTubeURL.objects.get(url=url)
-            return JsonResponse({"status" : yt_url.status})
+            return Response({"status" : yt_url.status})
         else:
-            return JsonResponse({"status" : "not exists"})
+            return Response({"status" : "not exists"})
 
 # api/ai/result/
 @api_view(['POST', 'DELETE'])
@@ -98,7 +94,7 @@ def ai_result(request):
                 }
             })
         except Exception as e:
-            return JsonResponse({"Error" : e})
+            return Response({"Error" : e})
     if request.method == 'DELETE':
         try:
             url = request.data.get('url')
@@ -109,7 +105,7 @@ def ai_result(request):
             sttResult.delete()
             return Response({"message" : "delete complete"})
         except Exception as e:
-            return JsonResponse({"Error" : e})
+            return Response({"Error" : e})
 
 def youtubeDefault(url):
     """
