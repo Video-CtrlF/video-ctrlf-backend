@@ -8,8 +8,6 @@ joblib==1.2.0
 pandas==2.0.1
 pillow==9.5.0
 mysqlclient==2.1.1
-pymysql
-cryptography
 py-hanspell @ git+https://github.com/ssut/py-hanspell.git@fdc6ca50c19f1c85971437a072d89d4e5ce024b8
 kiwipiepy==0.15.2
 keybert==0.7.0
