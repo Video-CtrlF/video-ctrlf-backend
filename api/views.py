@@ -104,8 +104,14 @@ def ai_result(request):
             yt_url = models.YouTubeURL.objects.get(url=url)
             ocrResult = models.OCRResult.objects.filter(url_id=yt_url)
             ocrResult.delete()
+            ocrKeyword = models.OCRKeyword.objects.filter(url_id=yt_url)
+            ocrKeyword.delete()
+
             sttResult = models.STTResult.objects.filter(url_id=yt_url)
             sttResult.delete()
+            sttKeyword = models.STTKeyword.objects.filter(url_id=yt_url)
+            sttKeyword.delete()
+
             return Response({"message" : "delete complete"})
         except Exception as e:
             return Response({"Error" : e})
