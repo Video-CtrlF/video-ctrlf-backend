@@ -17,15 +17,15 @@ class YouTubeInfo(models.Model):
 
 class YouTubeCaption(models.Model):
     url_id = models.ForeignKey("YouTubeURL", on_delete=models.CASCADE, db_column='url_id')
-    start_time = models.BigIntegerField(blank=True, null=True)
-    end_time = models.BigIntegerField(blank=True, null=True)
+    start_time = models.DecimalField(max_digits=20, decimal_places=4)
+    end_time = models.DecimalField(max_digits=20, decimal_places=4)
     text = models.TextField(blank=True, null=True)
     def __str__(self):
         return f"{str(self.url_id)} : [{self.start_time:6.2f} ~ {self.end_time:6.2f}] {self.text}"
 
 class OCRResult(models.Model):
     url_id = models.ForeignKey("YouTubeURL", on_delete=models.CASCADE, db_column='url_id')
-    time = models.BigIntegerField(blank=True, null=True)
+    time = models.DecimalField(max_digits=20, decimal_places=4)
     text = models.TextField(blank=True, null=True)
     conf = models.DecimalField(max_digits=7, decimal_places=6, blank=True, null=True)
     bbox = models.JSONField(blank=True, null=True)
@@ -34,8 +34,8 @@ class OCRResult(models.Model):
 
 class STTResult(models.Model):
     url_id = models.ForeignKey("YouTubeURL", on_delete=models.CASCADE, db_column='url_id')
-    start_time = models.BigIntegerField(blank=True, null=True)
-    end_time = models.BigIntegerField(blank=True, null=True)
+    start_time = models.DecimalField(max_digits=20, decimal_places=4)
+    end_time = models.DecimalField(max_digits=20, decimal_places=4)
     text = models.TextField(blank=True, null=True)
     def __str__(self):
         return f"{str(self.url_id)} : [{self.start_time:6.2f} ~ {self.end_time:6.2f}] {self.text}"
