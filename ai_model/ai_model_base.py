@@ -9,6 +9,7 @@ import time
 import pandas as pd
 import cv2
 import whisper
+import torch
 import joblib
 # from konlpy.tag import Okt
 import re, os
@@ -140,7 +141,10 @@ class AiModel:
         return: pd.DataFrame, list(keywords)
         """
         print('Whisper Start!!')
-        whisper_model = joblib.load("ai_model/models/whisper_base_model.pkl")
+        # whisper_model = joblib.load("ai_model/models/whisper_base_model.pkl")
+        # gpu 사용
+        devices = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") 
+        whisper_model = whisper.load_model("medium" , device=devices)
         audio_all = whisper.load_audio(self.audio_url) # load audio
         result = whisper_model.transcribe(audio_all)
         for seg in result['segments']:
