@@ -90,7 +90,9 @@ class AiModel:
         return: pd.DataFrame, list(keywords)
         """
         print("EasyOCR Start!!")
-        easyocr_model = joblib.load("ai_model/models/easyocr_base_model.pkl")
+        # easyocr_model = joblib.load("ai_model/models/easyocr_base_model.pkl")
+        langs = ['ko', 'en']
+        easyocr_model = Reader(lang_list=langs, gpu=True)
         cap = cv2.VideoCapture(self.video_url)
         frames = []
         times = []
