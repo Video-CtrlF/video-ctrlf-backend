@@ -143,7 +143,8 @@ class AiModel:
         print('Whisper Start!!')
         # whisper_model = joblib.load("ai_model/models/whisper_base_model.pkl")
         # gpu 사용
-        devices = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") 
+        devices = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        print("devices:", devices)
         whisper_model = whisper.load_model("medium" , device=devices)
         audio_all = whisper.load_audio(self.audio_url) # load audio
         result = whisper_model.transcribe(audio_all)
