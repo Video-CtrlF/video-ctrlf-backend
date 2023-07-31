@@ -127,6 +127,9 @@ class AiModel:
             result['time'] = time
             self.easyocr_results = pd.concat([self.easyocr_results, result], ignore_index=True)
 
+        # 중복 제거
+        self.easyocr_results = drop_duplicated(self.easyocr_results)
+
         #text 추출
         text = self.easyocr_results['text']
         text_list = list(map(str, text))
@@ -228,6 +231,28 @@ class AiModel:
     #     for word, r in sorted(keywords.items(), key=lambda x:x[1], reverse=True):
     #             keywords_result.append(word)
     #     return keywords_result
+
+def drop_duplicated(ocr_result):
+    """
+    1초 단위로 연속해서 중복되는 OCR 결과를 제거한다.
+    """
+    dropped_indices = []
+    text_dict = {}
+
+    for index, row in ocr_result.iterrows():
+        text = row['text']
+        if text not in text_dict:
+            text_dict[text] = []
+        text_dict[text].append((index, int(row['time'])))
+
+    for text, locations in text_dict.items():
+        prev_sec = -2
+        for index, sec in locations:
+            if prev_sec + 1 == sec:
+                dropped_indices.append(index)
+            prev_sec = sec
+    return ocr_result.drop(dropped_indices, axis=0)
+
 
 
 if __name__ == "__main__":
