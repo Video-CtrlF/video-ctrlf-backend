@@ -30,7 +30,7 @@ class AiModel:
         self.video_url = self.yt.streams.get_highest_resolution().url
         self.audio_url = self.yt.streams.filter(only_audio=True).first().url
         self.caption_df = pd.DataFrame(columns=["start", "end", "text"])
-        self.easyocr_results = pd.DataFrame(columns=["bbox", "text", "conf", "time", "size"]) # bbox = (tl, tr, br, bl)
+        self.easyocr_results = pd.DataFrame(columns=["bbox", "text", "conf", "time"]) # bbox = (tl, tr, br, bl)
         self.whisper_results = pd.DataFrame(columns=["start", "end", "text"])
 
         self.height = None
@@ -232,27 +232,57 @@ class AiModel:
     #             keywords_result.append(word)
     #     return keywords_result
 
-def drop_duplicated(ocr_result):
-    """
-    1초 단위로 연속해서 중복되는 OCR 결과를 제거한다.
-    """
+def drop_duplicated(scripts_df):
+    TIME_INDEX = 3
+    TEXT_INDEX = 1
+    scripts = scripts_df.values.tolist()
+
     dropped_indices = []
-    text_dict = {}
+    scripts_length = len(scripts)
 
-    for index, row in ocr_result.iterrows():
-        text = row['text']
-        if text not in text_dict:
-            text_dict[text] = []
-        text_dict[text].append((index, int(row['time'])))
+    for (i, target_script) in enumerate(scripts):
+        target_sec = int(float(target_script[TIME_INDEX]))
+        target_text = target_script[TEXT_INDEX]
 
-    for text, locations in text_dict.items():
-        prev_sec = -2
-        for index, sec in locations:
-            if prev_sec + 1 == sec:
-                dropped_indices.append(index)
-            prev_sec = sec
-    return ocr_result.drop(dropped_indices, axis=0)
+        j = i + 1
+        last_dropped_sec = target_sec
+        while j < scripts_length:
+            script = scripts[j]
+            sec = int(float(script[TIME_INDEX]))
+            text = script[TEXT_INDEX]
 
+            if last_dropped_sec + 1 < sec:
+                break
+
+            # 레벤슈타인 거리 / 문자열 길이 <= 0.25
+            # 다른 글자가 4개 중 1개 이하 수준이면 중복 텍스트로 간주함
+            if levenshtein_distance(target_text, text) / len(target_text) <= 0.25:
+                dropped_indices.append(j)
+                last_dropped_sec = sec
+
+            j += 1
+
+    dropped_indices = sorted(list(set(dropped_indices)))
+    return scripts_df.drop(dropped_indices, axis=0)
+
+
+def levenshtein_distance(s1, s2):
+    m, n = len(s1), len(s2)
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+
+    for i in range(m + 1):
+        dp[i][0] = i
+    for j in range(n + 1):
+        dp[0][j] = j
+
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            cost = 0 if s1[i - 1] == s2[j - 1] else 1
+            dp[i][j] = min(dp[i - 1][j] + 1,  # 삭제
+                           dp[i][j - 1] + 1,  # 삽입
+                           dp[i - 1][j - 1] + cost)  # 치환
+
+    return dp[m][n]
 
 
 if __name__ == "__main__":
