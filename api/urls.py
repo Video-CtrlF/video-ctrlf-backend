@@ -3,6 +3,7 @@ from . import views
 
 urlpatterns = [
     path("check-existence/", views.url_check), 
+    path("url/", views.delete_url), 
     path("captions/", views.get_caption), 
     path("status/", views.get_status),
     path("ai/", views.ai_inference),

@@ -28,6 +28,23 @@ def url_check(request):
         except Exception as e:
             return Response({"Error" : e})
 
+@api_view(['DELETE'])
+def delete_url(request):
+    if request.method == 'DELETE':
+        try:
+            url = request.data.get('url')
+            if url:
+                url = get_watch_url(url)
+                if not models.YouTubeURL.objects.filter(url=url).exists(): # DB에 해당 URL이 존재하지 않으면
+                    return Response({"message" : "url not exists"})
+                yt_url = models.YouTubeURL.objects.get(url=url)
+                yt_url.delete()
+                return Response({"message" : "delete complete"})
+            else:
+                return Response({"Error" : "url was not sent"})
+        except Exception as e:
+            return Response({"Error" : e})
+
 # api/captions/
 @api_view(['POST'])
 def get_caption(request):
@@ -157,18 +174,25 @@ def ai_result(request):
     if request.method == 'DELETE':
         try:
             url = request.data.get('url')
-            yt_url = models.YouTubeURL.objects.get(url=url)
-            ocrResult = models.OCRResult.objects.filter(url_id=yt_url)
-            ocrResult.delete()
-            ocrKeyword = models.OCRKeyword.objects.filter(url_id=yt_url)
-            ocrKeyword.delete()
+            if url:
+                url = get_watch_url(url)
+                yt_url = models.YouTubeURL.objects.get(url=url)
+                ocrResult = models.OCRResult.objects.filter(url_id=yt_url)
+                ocrResult.delete()
+                ocrKeyword = models.OCRKeyword.objects.filter(url_id=yt_url)
+                ocrKeyword.delete()
 
-            sttResult = models.STTResult.objects.filter(url_id=yt_url)
-            sttResult.delete()
-            sttKeyword = models.STTKeyword.objects.filter(url_id=yt_url)
-            sttKeyword.delete()
+                sttResult = models.STTResult.objects.filter(url_id=yt_url)
+                sttResult.delete()
+                sttKeyword = models.STTKeyword.objects.filter(url_id=yt_url)
+                sttKeyword.delete()
 
-            return Response({"message" : "delete complete"})
+                # 상태 "created"로 변경
+                yt_url.status = "created"
+                yt_url.save()
+                return Response({"message" : "delete complete"})
+            else:
+                return Response({"Error" : "url was not sent"})
         except Exception as e:
             return Response({"Error" : e})
 
@@ -207,17 +231,18 @@ def inference(yt_url, ai_obj):
     """
     # OCRResult에 저장
     try:
-        # STTResult에 저장
-        stt_result, stt_keywords = ai_obj.get_whisper_result()
-        for _, row in stt_result.iterrows():
-            data_model = models.STTResult(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
-            data_model.save()
+        # # STTResult에 저장
+        # stt_result, stt_keywords = ai_obj.get_whisper_result()
+        # for _, row in stt_result.iterrows():
+        #     data_model = models.STTResult(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
+        #     data_model.save()
         
-        # 핵심 Keyword 저장
-        models.STTKeyword(url_id=yt_url, keywords={"topN" : stt_keywords}).save()
+        # # 핵심 Keyword 저장
+        # models.STTKeyword(url_id=yt_url, keywords={"topN" : stt_keywords}).save()
 
         ocr_result, ocr_keywords = ai_obj.get_easyocr_result()
         bbox = ("tl", "tr", "br", "bl")
+        print("------------11111----------------")
         for _, row in ocr_result.iterrows():
             data_model = models.OCRResult(url_id=yt_url, time=row['time'], text=row['text'], conf=row['conf'])
             coordinates = {}
@@ -225,12 +250,15 @@ def inference(yt_url, ai_obj):
                 coordinates[bbox[i]] = (x, y)
             data_model.bbox = coordinates
             data_model.save()
+        print("------------222222----------------")
 
         # 핵심 Keyword 저장
         models.OCRKeyword(url_id=yt_url, keywords={"topN" : ocr_keywords}).save()
 
+        print("------------3333333----------------")
         yt_url.status = "success"
         yt_url.save()
+        print("------------444444----------------")
     except Exception as e: # 에러 발생 시 status = fail으로 변경 
             print("[AI INFERENCE Error] : ", e)
             yt_url.status = "fail"
