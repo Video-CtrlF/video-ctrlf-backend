@@ -133,12 +133,12 @@ def ai_result(request):
                 OCRserializer = OCRResultSerializer(models.OCRResult.objects.filter(url_id=yt_url), many=True)
                 sttKeyword = models.STTKeyword.objects.filter(url_id=yt_url)
                 if sttKeyword:
-                    retSttKeyword = STTKeywordSerializer(sttKeyword, many=True).data[0]['keywords']['topN'],
+                    retSttKeyword = STTKeywordSerializer(sttKeyword, many=True).data[0]['keywords']['topN']
                 else:
                     retSttKeyword = None
                 ocrKeyword = models.OCRKeyword.objects.filter(url_id=yt_url)
                 if ocrKeyword:
-                    retOcrKeyword = OCRKeywordSerializer(ocrKeyword, many=True).data[0]['keywords']['topN'],
+                    retOcrKeyword = OCRKeywordSerializer(ocrKeyword, many=True).data[0]['keywords']['topN']
                 else:
                     retOcrKeyword = None
                 return Response({
