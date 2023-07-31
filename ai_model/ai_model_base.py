@@ -3,7 +3,7 @@ from pytube import YouTube
 # from krwordrank.word import KRWordRank
 # from krwordrank.word import summarize_with_keywords
 from hanspell import spell_checker
-
+from skimage.metrics import structural_similarity as ssim 
 
 import time
 import pandas as pd
@@ -97,7 +97,8 @@ class AiModel:
         cap = cv2.VideoCapture(self.video_url)
         frames = []
         times = []
-        for _ in tqdm(range(int(self.frame_count))):
+        prev_frame = None
+        for i in tqdm(range(int(self.frame_count))):
             frame_pos = cap.get(cv2.CAP_PROP_POS_FRAMES) # 현재 프레임
             success, frame = cap.read()
             
@@ -109,11 +110,19 @@ class AiModel:
 
             if frame_pos % (self.fps) != 0: # 1초에 한 장씩
                 continue
+            if i != 0:
+                grayPrev = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
+                grayNow = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                score, diff = ssim(grayPrev, grayNow, full=True)
+                if score > 0.7:
+                    continue
 
             frames.append(frame)
+            prev_frame = frame
             times.append(frame_pos / self.fps) # 시간 정보
 
         cap.release()
+        print("len(frames) : ", len(frames))
 
         for frame, time in zip(tqdm(frames), times):
             temp = easyocr_model.readtext(frame, detail=1)
@@ -128,7 +137,7 @@ class AiModel:
             self.easyocr_results = pd.concat([self.easyocr_results, result], ignore_index=True)
 
         # 중복 제거
-        self.easyocr_results = drop_duplicated(self.easyocr_results)
+        # self.easyocr_results = drop_duplicated(self.easyocr_results)
 
         #text 추출
         text = self.easyocr_results['text']
@@ -176,12 +185,9 @@ class AiModel:
         kiwi = Kiwi()
         nouns_list = []
         for sentences in texts:
-            # 맞춤법 검사
+            sentences = re.sub('[^가-힣a-z1-9]', ' ', sentences)
             spell_sentence = spell_checker.check(sentences)
-            checked_sentence = spell_sentence.checked
-            
-            #영어, 한글, 숫자 외 모든 문자 제거
-            sentences = re.sub('[^가-힣a-z1-9]', ' ', checked_sentence)
+            sentences = spell_sentence.checked
 
             for sentence in kiwi.analyze(sentences):
                 nouns = [token.form for token in sentence[0] if token.tag.startswith('NN')]
@@ -286,7 +292,7 @@ def levenshtein_distance(s1, s2):
 
 
 if __name__ == "__main__":
-    url = 'https://www.youtube.com/watch?v=bGcVkNP1tPs&t=2s&ab_channel=1%EB%B6%84%EB%AF%B8%EB%A7%8C'
+    url = 'https://www.youtube.com/watch?v=Vws4jvdUO1E%26ab_channel=1%EB%B6%84%EB%AF%B8%EB%A7%8C/' # 수박
     models = AiModel(url=url)
     # caption = models.get_captions()
     # caption.to_csv("caption.csv")
