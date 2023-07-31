@@ -231,18 +231,17 @@ def inference(yt_url, ai_obj):
     """
     # OCRResult에 저장
     try:
-        # # STTResult에 저장
-        # stt_result, stt_keywords = ai_obj.get_whisper_result()
-        # for _, row in stt_result.iterrows():
-        #     data_model = models.STTResult(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
-        #     data_model.save()
+        # STTResult에 저장
+        stt_result, stt_keywords = ai_obj.get_whisper_result()
+        for _, row in stt_result.iterrows():
+            data_model = models.STTResult(url_id=yt_url, start_time=row['start'], end_time=row['end'], text=row['text'])
+            data_model.save()
         
-        # # 핵심 Keyword 저장
-        # models.STTKeyword(url_id=yt_url, keywords={"topN" : stt_keywords}).save()
+        # 핵심 Keyword 저장
+        models.STTKeyword(url_id=yt_url, keywords={"topN" : stt_keywords}).save()
 
         ocr_result, ocr_keywords = ai_obj.get_easyocr_result()
         bbox = ("tl", "tr", "br", "bl")
-        print("------------11111----------------")
         for _, row in ocr_result.iterrows():
             data_model = models.OCRResult(url_id=yt_url, time=row['time'], text=row['text'], conf=row['conf'])
             coordinates = {}
@@ -250,15 +249,12 @@ def inference(yt_url, ai_obj):
                 coordinates[bbox[i]] = (x, y)
             data_model.bbox = coordinates
             data_model.save()
-        print("------------222222----------------")
 
         # 핵심 Keyword 저장
         models.OCRKeyword(url_id=yt_url, keywords={"topN" : ocr_keywords}).save()
 
-        print("------------3333333----------------")
         yt_url.status = "success"
         yt_url.save()
-        print("------------444444----------------")
     except Exception as e: # 에러 발생 시 status = fail으로 변경 
             print("[AI INFERENCE Error] : ", e)
             yt_url.status = "fail"
