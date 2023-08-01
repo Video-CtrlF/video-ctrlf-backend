@@ -37,8 +37,8 @@ class AiModel:
         self.width = None
 
         cap = cv2.VideoCapture(self.video_url)
-        self.fps = cap.get(cv2.CAP_PROP_FPS)
-        self.frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) # 프레임 개수
+        self.fps = round(cap.get(cv2.CAP_PROP_FPS))
+        self.frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) # 프레임 개수
         print("fps :", self.fps)
         print("frame_count :", self.frame_count)
 
@@ -99,9 +99,9 @@ class AiModel:
         times = []
         prev_frame = None
         for i in tqdm(range(int(self.frame_count))):
-            frame_pos = cap.get(cv2.CAP_PROP_POS_FRAMES) # 현재 프레임
+            frame_pos = int(cap.get(cv2.CAP_PROP_POS_FRAMES)) # 현재 프레임
             success, frame = cap.read()
-            
+
             if not success:
                 print('not success frame :', frame_pos)
                 print('not success time :', frame_pos / self.fps)
@@ -110,11 +110,17 @@ class AiModel:
 
             if frame_pos % (self.fps) != 0: # 1초에 한 장씩
                 continue
+
             if i != 0:
+                bins = 255
                 grayPrev = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
                 grayNow = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                score, diff = ssim(grayPrev, grayNow, full=True)
-                if score > 0.7:
+                score = ssim(grayPrev, grayNow, full=False) # SSIM
+                # histPrev = cv2.calcHist(images=[grayPrev], channels=[0], mask=None, histSize=[bins], ranges=[0, 256])
+                # histNow = cv2.calcHist(images=[grayNow], channels=[0], mask=None, histSize=[bins], ranges=[0, 256])
+                # score = cv2.compareHist(histPrev, histNow, cv2.HISTCMP_CORREL)
+                # print("score :", score)
+                if score > 0.9:
                     continue
 
             frames.append(frame)
@@ -139,11 +145,11 @@ class AiModel:
         # 중복 제거
         # self.easyocr_results = drop_duplicated(self.easyocr_results)
 
-        #text 추출
+        # text 추출
         text = self.easyocr_results['text']
         text_list = list(map(str, text))
         keywords = self.texts2keyword(text_list)
-        print(keywords)    
+        print(keywords)
         print("EasyOCR Done!!")
         return self.easyocr_results, keywords
 
@@ -157,7 +163,7 @@ class AiModel:
         # gpu 사용
         devices = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print("devices:", devices)
-        whisper_model = whisper.load_model("medium" , device=devices)
+        whisper_model = whisper.load_model("tiny", device=devices)
         audio_all = whisper.load_audio(self.audio_url) # load audio
         result = whisper_model.transcribe(audio_all)
         for seg in result['segments']:
@@ -174,121 +180,114 @@ class AiModel:
         print('Whisper Done!!')
         return self.whisper_results, keywords
 
-    def texts2keyword(self, texts):
-        from keybert import KeyBERT
+    def texts2keyword(self,texts):
         from kiwipiepy import Kiwi
-        from transformers import BertModel
+        from gensim.models.ldamodel import LdaModel
+        from gensim import corpora
 
-        model = BertModel.from_pretrained('skt/kobert-base-v1')
-        kw_model = KeyBERT(model)
+        f = open('data/stopwords.txt', encoding='utf8') 
+        stopwords = f.readlines()
+        f.close()
+        user_stopwords = ['거','초','앞','수','번','뒤','손','지금']
+        stopwords = user_stopwords + stopwords
+        stopwords = [re.sub('[^ 가-힣]', '', text) for text in stopwords]
 
+        #전처리
         kiwi = Kiwi()
+
         nouns_list = []
         for sentences in texts:
-            sentences = re.sub('[^가-힣a-z1-9]', ' ', sentences)
-            spell_sentence = spell_checker.check(sentences)
-            sentences = spell_sentence.checked
 
+            #영어, 한글, 숫자 외 모든 문자 제거
+            sentences = re.sub('[^가-힣a-z1-9]', '', sentences)
             for sentence in kiwi.analyze(sentences):
-                nouns = [token.form for token in sentence[0] if token.tag.startswith('NN')]
+                nouns = [token.form for token in sentence[0] if token.form not in stopwords and token.tag.startswith('NN')]
                 if nouns:
-                    nouns_list.extend(nouns)
-            result_text = ' '.join(nouns_list)
+                    nouns_list.append(nouns)
+        dictionary = corpora.Dictionary(nouns_list)
 
-        #불용어 처리
-        # stop_words = ['말씀','지금','오늘','번째']
-        # keywords = kw_model.extract_keywords(result_text, keyphrase_ngram_range=(1, 1), stop_words=stop_words, top_n=20)
-        keywords = kw_model.extract_keywords(result_text, keyphrase_ngram_range=(1, 1), stop_words=None, top_n=20)
-        keywords = [item[0] for item in keywords]
+        #2번 이상 출현 , 전체 50% 이상 차지 단어
+        dictionary.filter_extremes(no_below=2, no_above=0.5)
+        corpus = [dictionary.doc2bow(doc) for doc in nouns_list]
+
+        num_topics = 1
+        chunksize = 2000
+        passes = 20
+        iterations = 400
+        eval_every = None
+
+        temp = dictionary[0]
+        id2word = dictionary.id2token
+
+        model = LdaModel(
+            corpus=corpus,
+            id2word=id2word,
+            chunksize=chunksize,
+            alpha='auto',
+            eta='auto',
+            iterations=iterations,
+            num_topics=num_topics,
+            passes=passes,
+            eval_every=eval_every
+        )
+
+        top_topics = model.top_topics(corpus) #, num_words=20)
+        keywords = [item[1] for item in top_topics[0][0]]
         return keywords
+
+# def drop_duplicated(scripts_df):
+#     TIME_INDEX = 3
+#     TEXT_INDEX = 1
+#     scripts = scripts_df.values.tolist()
+
+#     is_return = [True] * scripts_df.shape[0]
+#     scripts_length = len(scripts)
+
+#     for (i, target_script) in enumerate(scripts):
+#         if not is_return[i]:
+#             continue
+
+#         target_sec = int(float(target_script[TIME_INDEX]))
+#         target_text = target_script[TEXT_INDEX]
+
+#         j = i + 1
+#         last_dropped_sec = target_sec
+#         while j < scripts_length:
+#             script = scripts[j]
+#             sec = int(float(script[TIME_INDEX]))
+#             text = script[TEXT_INDEX]
+
+#             if last_dropped_sec + 1 < sec:
+#                 break
+
+#             # 레벤슈타인 거리 / 문자열 길이 <= 0.25
+#             # 다른 글자가 4개 중 1개 이하 수준이면 중복 텍스트로 간주함
+#             if target_text == text or levenshtein_distance(target_text, text) / len(target_text) <= 0.25:
+#                 is_return[j] = False
+#                 last_dropped_sec = sec
+
+#             j += 1
     
-    # def texts2keyword2(self, texts):
-    #     os.environ['JAVA_HOME'] = r'C:\Program Files\Java\jdk-17' 
-    #     text_str = list(map(str, texts))
-        
-    #     okt = Okt()
-    #     result = []
-    #     for sentence in text_str:
-    #         #맞춤법 확인
-    #         print(sentence)
-    #         spell_sentence = spell_checker.check(sentence)
-    #         checked_sentence = spell_sentence.checked
-            
-    #         #영어, 한글,숫자 외 모든 문자 제거
-    #         sentence = re.sub('[^가-힣a-z1-9]', ' ', checked_sentence)
-
-    #         print(sentence)
-    #         if len(sentence) == 0:
-    #             continue
-    #         sentence_pos = okt.pos(sentence, norm= True, stem=True)
-    #         nouns = [word for word, pos in sentence_pos if pos == 'Noun']
-    #         if len(nouns) == 1:
-    #             continue
-    #         result.append(' '.join(nouns))
-    #     #print(result)
-    #     min_count = 2   # 단어의 최소 출현 빈도수 (그래프 생성 시)
-    #     max_length = 10 # 단어의 최대 길이
-    #     #wordrank_extractor = KRWordRank(min_count=min_count, max_length=max_length)
-    #     beta = 0.85    # PageRank의 decaying factor beta
-    #     max_iter=15
-        
-    #     keywords_result = []
-    #     keywords = summarize_with_keywords(result, min_count=min_count, max_length=max_length, beta=beta, max_iter=max_iter, verbose=True)
-    #     for word, r in sorted(keywords.items(), key=lambda x:x[1], reverse=True):
-    #             keywords_result.append(word)
-    #     return keywords_result
-
-def drop_duplicated(scripts_df):
-    TIME_INDEX = 3
-    TEXT_INDEX = 1
-    scripts = scripts_df.values.tolist()
-
-    dropped_indices = []
-    scripts_length = len(scripts)
-
-    for (i, target_script) in enumerate(scripts):
-        target_sec = int(float(target_script[TIME_INDEX]))
-        target_text = target_script[TEXT_INDEX]
-
-        j = i + 1
-        last_dropped_sec = target_sec
-        while j < scripts_length:
-            script = scripts[j]
-            sec = int(float(script[TIME_INDEX]))
-            text = script[TEXT_INDEX]
-
-            if last_dropped_sec + 1 < sec:
-                break
-
-            # 레벤슈타인 거리 / 문자열 길이 <= 0.25
-            # 다른 글자가 4개 중 1개 이하 수준이면 중복 텍스트로 간주함
-            if levenshtein_distance(target_text, text) / len(target_text) <= 0.25:
-                dropped_indices.append(j)
-                last_dropped_sec = sec
-
-            j += 1
-
-    dropped_indices = sorted(list(set(dropped_indices)))
-    return scripts_df.drop(dropped_indices, axis=0)
+#     return scripts_df[is_return]
 
 
-def levenshtein_distance(s1, s2):
-    m, n = len(s1), len(s2)
-    dp = [[0] * (n + 1) for _ in range(m + 1)]
+# def levenshtein_distance(s1, s2):
+#     m, n = len(s1), len(s2)
+#     dp = [[0] * (n + 1) for _ in range(m + 1)]
 
-    for i in range(m + 1):
-        dp[i][0] = i
-    for j in range(n + 1):
-        dp[0][j] = j
+#     for i in range(m + 1):
+#         dp[i][0] = i
+#     for j in range(n + 1):
+#         dp[0][j] = j
 
-    for i in range(1, m + 1):
-        for j in range(1, n + 1):
-            cost = 0 if s1[i - 1] == s2[j - 1] else 1
-            dp[i][j] = min(dp[i - 1][j] + 1,  # 삭제
-                           dp[i][j - 1] + 1,  # 삽입
-                           dp[i - 1][j - 1] + cost)  # 치환
+#     for i in range(1, m + 1):
+#         for j in range(1, n + 1):
+#             cost = 0 if s1[i - 1] == s2[j - 1] else 1
+#             dp[i][j] = min(dp[i - 1][j] + 1,  # 삭제
+#                            dp[i][j - 1] + 1,  # 삽입
+#                            dp[i - 1][j - 1] + cost)  # 치환
 
-    return dp[m][n]
+#     return dp[m][n]
 
 
 if __name__ == "__main__":
