@@ -112,7 +112,7 @@ class AiModel:
                 continue
 
             if i != 0:
-                bins = 255
+                # bins = 255
                 grayPrev = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
                 grayNow = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 score = ssim(grayPrev, grayNow, full=False) # SSIM
