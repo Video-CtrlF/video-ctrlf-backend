@@ -12,3 +12,4 @@ py-hanspell @ git+https://github.com/ssut/py-hanspell.git@fdc6ca50c19f1c85971437
 kiwipiepy==0.15.2
 keybert==0.7.0
 transformers==4.31.0
+gensim==4.3.1
