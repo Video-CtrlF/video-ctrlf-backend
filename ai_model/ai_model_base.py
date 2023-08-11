@@ -37,7 +37,7 @@ class AiModel:
         self.width = None
 
         cap = cv2.VideoCapture(self.video_url)
-        self.fps = round(cap.get(cv2.CAP_PROP_FPS))
+        self.fps = cap.get(cv2.CAP_PROP_FPS)
         self.frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) # 프레임 개수
         print("fps :", self.fps)
         print("frame_count :", self.frame_count)
@@ -108,7 +108,7 @@ class AiModel:
                 print('not success ... break')
                 break
 
-            if frame_pos % (self.fps) != 0: # 1초에 한 장씩
+            if (frame_pos % round(self.fps)) != 0: # 1초에 한 장씩
                 continue
 
             if i != 0:
